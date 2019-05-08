@@ -1,6 +1,6 @@
 #include "thread.h"
 #include "pcb.h"
-#include <iostream>
+#include <iostream.h>
 #include <dos.h>
 
 // Zabranjuje prekide

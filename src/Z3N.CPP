@@ -173,9 +173,9 @@ void createProcess(PCB *newPCB, void (*body)()){
 	st1[1022] = FP_SEG(body);
 	st1[1021] = FP_OFF(body);
 
-newPCB->sp = FP_OFF(st1+1012); //svi sacuvani registri 
- //pri ulasku u interrupt 
- //rutinu
+	newPCB->sp = FP_OFF(st1+1012); //svi sacuvani registri
+	//pri ulasku u interrupt
+	//rutinu
 	newPCB->ss = FP_SEG(st1+1012);
 	newPCB->zavrsio = 0;
 }

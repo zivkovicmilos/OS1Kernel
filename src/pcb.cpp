@@ -1,8 +1,9 @@
 #include "pcb.h"
 
-int PCB::cnt = 0;
-PCB* PCB::running = nullptr;
-bool PCB::reqContextSwitch = false;
+unsigned int PCB::cnt = 0;
+PCB* PCB::running = 0;
+volatile int PCB::reqContextSwitch = 0;
+bstTree* PCB::threads = new bstTree();
 
 unsigned tss;
 unsigned tsp;
@@ -10,20 +11,32 @@ unsigned tbp;
 
 PCB::PCB(Thread* t, StackSize stackSize, Time timeSlice) {
 	// lock
+	id = ++cnt;
 	state = NEW;
 	myThread = t;
-	ss = stackSize;
-	ts = timeSlice;
+	if (stackSize > maxStackSize) {
+		this->stackSize = maxStackSize;
+	} else {
+		this->stackSize = stackSize;
+	}
+	this->timeSlice = timeSlice;
 	stack = new unsigned[stackSize];
+	threads->instBst(t);
 	// unlock
 }
 
 void PCB::initPCB() {
-	// Imas u onom Plakalovic dokumentu
+	// lock
+
+	tsp = FP_OFF(stack + stackSize-1);
+	tss = FP_SEG(stack + stackSize-1);
+
+
+	//unlock
 }
 
-unsigned int PCB::getId() const {
-	return id;
+Thread* PCB::findThread(ID id) {
+	return PCB::threads->bstFind(id);
 }
 
 PCB::threadState PCB::getState() {
@@ -44,13 +57,13 @@ void PCB::wrapper() {
 
 void PCB::decTimeSlice() {
 	// lock
-	running->ts--;
+	running->timeSlice--;
 	// unlock
 }
 
 void interrupt PCB::timer() {
 	if(!PCB::reqContextSwitch) {
-		decTimeSlice();
+		PCB:running->decTimeSlice();
 		// asm int 60h; ?
 	}
 
@@ -62,13 +75,13 @@ void interrupt PCB::timer() {
 			mov tbp, bp
 		}
 		running->stack = tsp;
-		running->ss = tss;
+		running->stackSize = tss;
 		running->bp = tbp;
 
 		running = Scheduler::get();
 
 		tsp = running->stack;
-		tss = running->ss;
+		tss = running->stackSize;
 		tbp = running->bp;
 
 		asm {
@@ -82,5 +95,5 @@ void interrupt PCB::timer() {
 		asm int 60h;
 	}
 
-	reqContextSwitch = false;
+	reqContextSwitch = 0;
 }

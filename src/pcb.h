@@ -1,5 +1,11 @@
 #ifndef _pcbh_
 #define _pcbh_
+#include "SCHEDULE.H"
+#include "thread.h"
+#include <dos.h>
+#include <stdlib.h>
+#include "bstT.h"
+const unsigned long maxStackSize = 16384; // TODO check
 
 class PCB {
 public:
@@ -7,9 +13,10 @@ public:
 	static enum threadState {NEW, READY, RUNNING, BLOCKED, FINISHED};
 	// Global PCB running
 	static PCB* running;
-	static volatile bool reqContextSwitch;
+	static volatile int reqContextSwitch;
+	static bstTree* threads;
 
-	PCB(Thread* t, StackSize stackSize, Time timeSlice);
+	PCB(Thread*, StackSize, Time);
 
 	threadState getState();
 	void setState(threadState s);
@@ -23,23 +30,22 @@ public:
 	 */
 	static void wrapper();
 
-	unsigned int getId() const;
-
 	void decTimeSlice();
 	Time getTimeSlice();
 
 	static void interrupt timer();
+	static Thread* findThread(ID);
 
 private:
 	Thread* myThread;
 	unsigned* stack;
-	unsigned int id = ++cnt;
+	ID id;
 	static unsigned int cnt;
-	StackSize ss;
-	volatile Time ts;
-	unsigned bp;
-
+	StackSize stackSize;
+	volatile Time timeSlice;
+	unsigned bp; // Base pointer
 	volatile threadState state;
+
 
 protected:
 
