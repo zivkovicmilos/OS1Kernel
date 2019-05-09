@@ -1,19 +1,23 @@
 #include "thread.h"
 #include "pcb.h"
 
-Thread::Thread(StackSize stackSize = defaultStackSize, Time timeSlice = defaultTimeSlice) {
+Thread::Thread(StackSize stackSize, Time timeSlice) {
 	// lock
+	PCB::lockFlag = 0;
 	myPCB = new PCB(this, stackSize, timeSlice);
+	PCB::lockFlag = 1;
 	// unlock
 }
 
 void Thread::start() {
 	// lock
+	PCB::lockFlag = 0;
 	if (myPCB->getState() == PCB::NEW) {
-		myPCB->setState(PCB::READY);
 		myPCB->initPCB();
+		myPCB->setState(PCB::READY);
 		Scheduler::put(myPCB);
 	}
+	PCB::lockFlag = 1;
 	// unlock
 }
 
