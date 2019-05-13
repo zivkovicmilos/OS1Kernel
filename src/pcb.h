@@ -1,11 +1,16 @@
 #ifndef _pcbh_
 #define _pcbh_
 #include "SCHEDULE.H"
-#include "thread.h"
 #include <dos.h>
+#include <iostream.h>
+#include "thread.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include "bstT.h"
+#include "queue.h"
 const unsigned long maxStackSize = 16384; // TODO check
+
+static void interrupt(*oldInterrupt)(...);
 
 class PCB {
 public:
@@ -13,7 +18,8 @@ public:
 	static enum threadState {NEW, READY, RUNNING, BLOCKED, FINISHED};
 	// Global PCB running
 	static PCB* running;
-	static volatile unsigned int lockFlag;
+	static void interrupt timer(...);
+	static volatile unsigned int locked;
 	static volatile int reqContextSwitch;
 	static bstTree* threads;
 
@@ -38,17 +44,21 @@ public:
 	 */
 	static void wrapper();
 
-	void decTimeSlice();
 	Time getTimeSlice();
-
-	static void interrupt timer();
+	//static void interrupt timer();
 	static Thread* findThread(ID);
 	static void inic();
 	static void restore();
-	static unsigned oldTimerOFF, oldTimerSEG;
 	ID id;
+	static volatile unsigned int activeThreads;
+	friend class MainThread;
+
 private:
+	friend class Thread;
+
 	Thread* myThread;
+	static Thread* mainThread;
+	Queue* waiting;
 	static unsigned int cnt;
 	StackSize stackSize;
 	volatile Time timeSlice;

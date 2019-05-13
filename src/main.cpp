@@ -1,17 +1,35 @@
-#include "thread.h"
-#include "pcb.h"
-#include <iostream.h>
-#include <dos.h>
+//#include "pcb.h"
+#include "A.h"
+#include "B.h"
 
-void mainFunct() {
+int userMain(int argc, char* argv[]) {
+		PCB::locked = 1;
+		A* a = new A(4096, 40);
+		a->start();
+		cout<<"napravio a"<<endl;
 
+		B* b = new B(4096, 20);
+		b->start();
+		cout<<"napravio b"<<endl;
+		asm cli;
+		PCB::locked = 0;
+
+		delete a;
+		PCB::locked = 1;
+		cout<<"ZAVRSIO SA A"<<endl;
+		asm cli;
+		PCB::locked = 0;
+		delete b;
+
+	return 0;
 }
 
-int main() {
-	Thread* idle = new Thread();
+int main(int argc, char* argv[]) {
 	PCB::inic();
 
-	mainFunct();
+	int val = 0;
+	val = userMain(argc, argv);
 
-	restore();
+	PCB::restore();
+	return val;
 }

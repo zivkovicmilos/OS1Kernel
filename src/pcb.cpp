@@ -1,7 +1,11 @@
 #include "pcb.h"
-
+#include "idleT.h"
+class MainThread;
 unsigned int PCB::cnt = 0;
-unsigned int PCB::lockFlag = 1;
+volatile unsigned int PCB::activeThreads = 0;
+static IdleThread* idle = 0;
+Thread* PCB::mainThread = 0;
+volatile unsigned int PCB::locked = 0;
 PCB* PCB::running = 0;
 volatile int PCB::reqContextSwitch = 0;
 bstTree* PCB::threads = new bstTree();
@@ -10,9 +14,12 @@ unsigned tss;
 unsigned tsp;
 unsigned tbp;
 
+volatile int currentSlice = -1;
+
 PCB::PCB(Thread* t, StackSize stackSize, Time timeSlice) {
 	// lock
-	lockFlag = 0;
+	PCB::locked = 1;
+	//PCB::activeThreads++;
 	id = ++cnt;
 	state = NEW;
 	myThread = t;
@@ -24,25 +31,45 @@ PCB::PCB(Thread* t, StackSize stackSize, Time timeSlice) {
 	this->timeSlice = timeSlice;
 	stackPointer = stackSegment = basePointer = 0;
 	threads->instBst(t);
-	lockFlag = 1;
+	waiting = new Queue();
+	PCB::locked = 0;
 	// unlock
 }
 
-void PCB::initPCB() {
-	// lock
-	lockFlag = 0;
-	unsigned* stack = new unsigned[stackSize];
+Time PCB::getTimeSlice() {
+	return timeSlice;
+}
 
+void PCB::wrapper() {
+	PCB::running->myThread->run();
+	running->setState(FINISHED);
+	//PCB::activeThreads--;
+	// OVDE IDU SVE STVARI KOJE ZELIM DA SE DESE KADA SE NIT ZAVRSI
+	// signalAll, zbog waitToComplete
+	PCB* temp;
+	while (PCB::running->waiting->getSize() > 0) {
+		temp = running->waiting->getElem();
+		temp->setState(PCB::READY);
+		PCB::locked = 1;
+		cout << "Stavljam nit: " << temp->id << endl;
+		PCB::locked = 0;
+		Scheduler::put(temp);
+	}
+	dispatch();
+}
+
+void (*body)() = PCB::wrapper;
+
+void PCB::initPCB() {
+	unsigned* stack = new unsigned[stackSize];
 	stack[stackSize-1] = 0x200; // Set the I flag
 
-	stack[stackSize-2] = FP_SEG(PCB::wrapper());
-	stack[stackSize-3] = FP_OFF(PCB::wrapper());
+	stack[stackSize-2] = FP_SEG(body);
+	stack[stackSize-3] = FP_OFF(body);
 
 	stackPointer = FP_OFF(stack+stackSize-12); // 12 bytes of regs are saved when entering the interrupt
 	stackSegment = FP_SEG(stack+stackSize-12);
 	basePointer = FP_OFF(stack+stackSize-12);
-	lockFlag = 1;
-	//unlock
 }
 
 Thread* PCB::findThread(ID id) {
@@ -82,119 +109,92 @@ void PCB::setBP(unsigned int bp) {
 	basePointer = bp;
 }
 
-void PCB::wrapper() {
-	PCB::running->myThread->run();
-	running->setState(FINISHED);
-	// OVDE IDU SVE STVARI KOJE ZELIM DA SE DESE KADA SE NIT ZAVRSI
-	// signalAll, zbog waitToComplete
-	// dispatch();
-}
-
-void PCB::decTimeSlice() {
-	// lock
-	lockFlag = 0;
-	running->timeSlice--;
-	lockFlag = 1;
-	// unlock
-}
-
-void interrupt PCB::timer() {
-	if(!PCB::reqContextSwitch) {
-		PCB:running->decTimeSlice();
-		// asm int 60h; ?
-	}
-
-	if (PCB::running->getTimeSlice() == 0 || PCB::reqContextSwitch) {
-		if (lockFlag) {
-			PCB::reqContextSwitch = 0;
-			// obrati paznju na ovaj prvi asm block
-					unsigned ttsp, ttss, ttbp;
-					ttsp = running->getSP();
-					ttss = running->getSS();
-					ttbp = running->getBP();
-					// TODO ovo ne valja
-					asm {
-						mov tsp, ttsp
-						mov tss, ttss
-						mov tbp, ttbp
-					}
-
-					lockFlag = 0;
-					running->setSP(tsp);
-					running->setSS(tss);
-					running->setBP(tbp);
-					lockFlag = 1;
-
-					if (!(running->getState() != FINISHED)) Scheduler::put((PCB *) running);
-					running = Scheduler::get();
-
-					lockFlag = 0;
-					tsp = running->getSP();
-					tss = running->getSS();
-					tbp = running->getBP();
-					lockFlag = 1;
-
-					asm {
-						mov ttsp, tsp
-						mov ttss, tss
-						mov ttbp, tbp
-					}
-					running-
-		}
-	}
-	if(!PCB::reqContextSwitch) {
-		asm int 60h;
-	}
-	reqContextSwitch = 0;
-}
-unsigned PCB::oldTimerOFF = 0
-unsigned PCB::oldTimerSEG = 0;
-
 void PCB::inic() {
-	asm{
-			cli
-			push es
-			push ax
+	asm cli;
 
-			mov ax,0   //  ; inicijalizuje rutinu za tajmer
-			mov es,ax
+	oldInterrupt = getvect(8);
+	setvect(8, timer);
 
-			mov ax, word ptr es:0022h //; pamti staru rutinu
-			mov word ptr oldTimerSEG, ax
-			mov ax, word ptr es:0020h
-			mov word ptr oldTimerOFF, ax
+	PCB::mainThread = new Thread(4096, 2);
+	mainThread->start(); // Places the main thread in the Scheduler
+	running = Scheduler::get(); // The main thread is the only thread in the scheduler
 
-			mov word ptr es:0022h, seg timer	 //postavlja
-			mov word ptr es:0020h, offset timer //novu rutinu
-
-			mov ax, oldTimerSEG	 //	postavlja staru rutinu
-			mov word ptr es:0182h, ax //; na int 60h
-			mov ax, oldTimerOFF
-			mov word ptr es:0180h, ax
-
-			pop ax
-			pop es
-			sti
-		}
+	asm sti;
 }
 
 void PCB::restore() {
-	asm {
-			cli
-			push es
-			push ax
+	if (PCB::running != mainThread->myPCB) return;
+	asm cli;
+	setvect(8, oldInterrupt);
+	// Delete all threads
+	delete mainThread;
+	delete mainThread->myPCB;
+	PCB::running = 0;
+	cout<<"Happy End"<<endl;
+	asm sti;
+}
 
-			mov ax,0
-			mov es,ax
+void interrupt PCB::timer(...) {
 
+	if (currentSlice < 0) currentSlice = PCB::running->getTimeSlice(); // counter was never initialized
 
-			mov ax, word ptr oldTimerSEG
-			mov word ptr es:0022h, ax
-			mov ax, word ptr oldTimerOFF
-			mov word ptr es:0020h, ax
+	if(!PCB::reqContextSwitch) {
+		currentSlice--;
+	}
 
-			pop ax
-			pop es
-			sti
+	if (currentSlice == 0 || PCB::reqContextSwitch) {
+		if (!PCB::locked) {
+			PCB::reqContextSwitch = 0;
+			// obrati paznju na ovaj prvi asm block
+					asm {
+						mov tsp, sp
+						mov tss, ss
+						mov tbp, bp
+					}
+
+					PCB::running->setSP(tsp);
+					PCB::running->setSS(tss);
+					PCB::running->setBP(tbp);
+
+					PCB::locked = 1;
+					cout << "Menja se kontekst sa " << PCB::running->id << " NUM: "<< PCB::activeThreads << endl;
+					asm cli;
+					PCB::locked = 0;
+
+					if (PCB::running->getState() == PCB::READY){
+						Scheduler::put((PCB *) PCB::running);
+					}
+
+					PCB* temp = 0;
+					while(1) {
+						temp = PCB::running = Scheduler::get();
+						PCB::locked = 1;
+						cout << "Izabrana nit: " << PCB::running->id << endl;
+						asm cli;
+						PCB::locked = 0;
+
+						if (temp->getState() != PCB::READY) continue;
+
+						tsp = PCB::running->getSP();
+						tss = PCB::running->getSS();
+						tbp = PCB::running->getBP();
+						currentSlice = PCB::running->getTimeSlice();
+
+						asm {
+							mov sp, tsp
+							mov ss, tss
+							mov bp, tbp
+						}
+						break;
+					}
+
+		} else {
+			PCB::reqContextSwitch = 1;
 		}
+	}
+
+	if(!PCB::reqContextSwitch) {
+		//void tick(); Tick zovemo samo kad je stvarno doslo do prekida
+		oldInterrupt();
+	}
 }

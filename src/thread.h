@@ -40,6 +40,7 @@ public:
 
 protected:
 	friend class PCB;
+	friend class IdleThread;
 
 	Thread(StackSize stackSize = defaultStackSize, Time timeSlice = defaultTimeSlice);
 

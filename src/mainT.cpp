@@ -1,0 +1,15 @@
+#include "mainT.h"
+
+void mainThread::run() {
+	for (int i =0; i < 50; ++i) {
+					PCB::locked = 1;
+					cout<<"MainThread i = "<<i<<endl;
+					asm cli;
+					PCB::locked = 0;
+					if(PCB::reqContextSwitch) dispatch();
+
+					for (int k = 0; k<10000; ++k)
+						for (int j = 0; j <30000; ++j);
+			}
+		PCB::exit();
+}
