@@ -41,6 +41,7 @@ public:
 protected:
 	friend class PCB;
 	friend class IdleThread;
+	friend class WaitList;
 
 	Thread(StackSize stackSize = defaultStackSize, Time timeSlice = defaultTimeSlice);
 

@@ -61,12 +61,13 @@ void Thread::waitToComplete() {
 		PCB::locked = 0;
 		return; }
 
-	PCB::running->setState(PCB::BLOCKED);
-	myPCB->waiting->addElem(PCB::running);
-	cout<<"Is waiting: " << PCB::running->id << " on " << myPCB->id<< endl;
-	asm cli;
-	PCB::locked = 0;
-	dispatch();
+	//PCB::running->setState(PCB::BLOCKED); CHANGED
+	myPCB->sem->wait(0);
+	PCB::locked = 0; // ???
+	//cout<<"Is waiting: " << PCB::running->id << " on " << myPCB->id<< endl;
+	//asm cli;
+	//PCB::locked = 0;
+	//dispatch();
 }
 
 Thread::~Thread() {

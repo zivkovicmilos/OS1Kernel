@@ -30,8 +30,8 @@ PCB::PCB(Thread* t, StackSize stackSize, Time timeSlice) {
 	}
 	this->timeSlice = timeSlice;
 	stackPointer = stackSegment = basePointer = 0;
-	threads->instBst(t);
-	waiting = new Queue();
+	//threads->instBst(t);
+	sem = new Semaphore(0);
 	PCB::locked = 0;
 	// unlock
 }
@@ -46,6 +46,12 @@ void PCB::wrapper() {
 	//PCB::activeThreads--;
 	// OVDE IDU SVE STVARI KOJE ZELIM DA SE DESE KADA SE NIT ZAVRSI
 	// signalAll, zbog waitToComplete
+	while (PCB::running->sem->val() < 0) {
+		PCB::running->sem->signal(0);
+	}
+	dispatch();
+	/*
+	 * CHANGED
 	PCB* temp;
 	while (PCB::running->waiting->getSize() > 0) {
 		temp = running->waiting->getElem();
@@ -56,6 +62,7 @@ void PCB::wrapper() {
 		Scheduler::put(temp);
 	}
 	dispatch();
+	*/
 }
 
 void (*body)() = PCB::wrapper;
@@ -172,6 +179,8 @@ void interrupt PCB::timer(...) {
 						cout << "Izabrana nit: " << PCB::running->id << endl;
 						asm cli;
 						PCB::locked = 0;
+
+						//if (temp == 0) PCB::running = idle->myPCB; CHANGED UNCOMMENT!!!!
 
 						if (temp->getState() != PCB::READY) continue;
 

@@ -4,9 +4,12 @@
 
 class A : public Thread {
 public:
-	A(StackSize ss, Time ts) : Thread(ss, ts){}
+	A(StackSize ss, Time ts) : Thread(ss, ts){idBroj =tren++;}
 	~A() {waitToComplete();}
 	void run();
+private:
+	int idBroj;
+	static int tren;
 };
 
 

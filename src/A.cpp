@@ -1,9 +1,10 @@
 #include "A.h"
+int A::tren = 50;
 
 void A::run () {
 		for (int i =0; i < 30; ++i) {
 				PCB::locked = 1;
-				cout<<"A i = "<<i<<endl;
+				cout<< idBroj << ": "<<i<<endl;
 				asm cli;
 				PCB::locked = 0;
 				if(PCB::reqContextSwitch) dispatch();
@@ -12,7 +13,7 @@ void A::run () {
 					for (int j = 0; j <30000; ++j);
 		}
 		PCB::locked = 1;
-		cout<<"Exiting A..." << endl;
+		cout<<"Exiting " << idBroj << "..."<< endl;
 		asm cli;
 		PCB::locked = 0;
 }

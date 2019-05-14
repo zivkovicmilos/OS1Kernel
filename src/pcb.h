@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include "bstT.h"
 #include "queue.h"
+#include "sem.h"
 const unsigned long maxStackSize = 16384; // TODO check
 
 static void interrupt(*oldInterrupt)(...);
@@ -55,10 +56,11 @@ public:
 
 private:
 	friend class Thread;
+	friend class KernelSem;
 
 	Thread* myThread;
 	static Thread* mainThread;
-	Queue* waiting;
+	Semaphore* sem; // CHANGED
 	static unsigned int cnt;
 	StackSize stackSize;
 	volatile Time timeSlice;
