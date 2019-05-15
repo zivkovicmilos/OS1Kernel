@@ -4,23 +4,15 @@
 
 int userMain(int argc, char* argv[]) {
 		PCB::locked = 1;
-		A** niz = new A*[50];
-		//A* a = new A(4096, 40);
-		//a->start();
-
-
-		for (int m = 0; m<50; m++) {
-			niz[m] = new A(4096, 5);
-			niz[m]->start();
-		}
-
+		A* a = new A(4096, 5);
+		B* b = new B(4096, 3);
+		a->start();
+		b->start();
 		//cout<<"napravio a"<<endl;
-		asm cli;
+		//asm cli;
 		PCB::locked = 0;
-		for (int k = 0; k<50; k++) {
-			delete niz[k];
-		}
-		delete niz;
+		delete a;
+		delete b;
 
 		/*
 		B* b = new B(4096, 20);

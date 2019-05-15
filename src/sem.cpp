@@ -3,7 +3,7 @@
 
 Semaphore::Semaphore(int init) {
 	//lock
-	myImpl = new KernelSem(init);
+	myImpl = new KernelSem(this, init);
 	//unlock
 }
 

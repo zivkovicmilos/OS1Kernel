@@ -6,8 +6,9 @@
 #include "thread.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include "bstT.h"
-#include "queue.h"
+//#include "bstT.h"
+//#include "queue.h"
+#include "tList.h"
 #include "sem.h"
 const unsigned long maxStackSize = 16384; // TODO check
 
@@ -22,7 +23,7 @@ public:
 	static void interrupt timer(...);
 	static volatile unsigned int locked;
 	static volatile int reqContextSwitch;
-	static bstTree* threads;
+	//static bstTree* threads;
 
 	PCB(Thread*, StackSize, Time);
 
@@ -51,13 +52,13 @@ public:
 	static void inic();
 	static void restore();
 	ID id;
-	static volatile unsigned int activeThreads;
-	friend class MainThread;
+	//static volatile unsigned int activeThreads;
+	//friend class MainThread;
 
 private:
 	friend class Thread;
 	friend class KernelSem;
-
+	static ThreadList* threadList;
 	Thread* myThread;
 	static Thread* mainThread;
 	Semaphore* sem; // CHANGED
@@ -68,10 +69,6 @@ private:
 	unsigned stackSegment;
 	unsigned basePointer;
 	volatile threadState state;
-
-
-protected:
-
 };
 
 #endif

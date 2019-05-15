@@ -1,14 +1,15 @@
 #include "pcb.h"
 #include "idleT.h"
-class MainThread;
+#include "ksem.h"
+
 unsigned int PCB::cnt = 0;
-volatile unsigned int PCB::activeThreads = 0;
+//volatile unsigned int PCB::activeThreads = 0;
 static IdleThread* idle = 0;
 Thread* PCB::mainThread = 0;
 volatile unsigned int PCB::locked = 0;
+ThreadList* PCB::threadList = new ThreadList();
 PCB* PCB::running = 0;
 volatile int PCB::reqContextSwitch = 0;
-bstTree* PCB::threads = new bstTree();
 
 unsigned tss;
 unsigned tsp;
@@ -30,6 +31,7 @@ PCB::PCB(Thread* t, StackSize stackSize, Time timeSlice) {
 	}
 	this->timeSlice = timeSlice;
 	stackPointer = stackSegment = basePointer = 0;
+	threadList->add(t);
 	//threads->instBst(t);
 	sem = new Semaphore(0);
 	PCB::locked = 0;
@@ -43,6 +45,7 @@ Time PCB::getTimeSlice() {
 void PCB::wrapper() {
 	PCB::running->myThread->run();
 	running->setState(FINISHED);
+	threadList->remove(PCB::running->id);
 	//PCB::activeThreads--;
 	// OVDE IDU SVE STVARI KOJE ZELIM DA SE DESE KADA SE NIT ZAVRSI
 	// signalAll, zbog waitToComplete
@@ -80,7 +83,7 @@ void PCB::initPCB() {
 }
 
 Thread* PCB::findThread(ID id) {
-	return PCB::threads->bstFind(id);
+	return PCB::threadList->getByID(id);
 }
 
 PCB::threadState PCB::getState() {
@@ -126,6 +129,9 @@ void PCB::inic() {
 	mainThread->start(); // Places the main thread in the Scheduler
 	running = Scheduler::get(); // The main thread is the only thread in the scheduler
 
+	idle = new IdleThread();
+	idle->start();
+
 	asm sti;
 }
 
@@ -145,8 +151,10 @@ void interrupt PCB::timer(...) {
 
 	if (currentSlice < 0) currentSlice = PCB::running->getTimeSlice(); // counter was never initialized
 
+
 	if(!PCB::reqContextSwitch) {
 		currentSlice--;
+		KernelSem::semList->markTick();
 	}
 
 	if (currentSlice == 0 || PCB::reqContextSwitch) {
@@ -164,7 +172,7 @@ void interrupt PCB::timer(...) {
 					PCB::running->setBP(tbp);
 
 					PCB::locked = 1;
-					cout << "Menja se kontekst sa " << PCB::running->id << " NUM: "<< PCB::activeThreads << endl;
+					cout << "Menja se kontekst sa " << PCB::running->id << endl;
 					asm cli;
 					PCB::locked = 0;
 
@@ -172,17 +180,17 @@ void interrupt PCB::timer(...) {
 						Scheduler::put((PCB *) PCB::running);
 					}
 
-					PCB* temp = 0;
 					while(1) {
-						temp = PCB::running = Scheduler::get();
+						PCB::running = Scheduler::get();
+
 						PCB::locked = 1;
 						cout << "Izabrana nit: " << PCB::running->id << endl;
 						asm cli;
 						PCB::locked = 0;
 
-						//if (temp == 0) PCB::running = idle->myPCB; CHANGED UNCOMMENT!!!!
+						if (PCB::running == 0) PCB::running = idle->myPCB;
 
-						if (temp->getState() != PCB::READY) continue;
+						if (PCB::running->getState() != PCB::READY) continue;
 
 						tsp = PCB::running->getSP();
 						tss = PCB::running->getSS();

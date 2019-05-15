@@ -8,6 +8,14 @@ void B::run () {
 					PCB::locked = 0;
 					if(PCB::reqContextSwitch) dispatch();
 
+					if (i == 15) {
+						PCB::locked = 1;
+						cout<<"B going to sleep..." << endl;
+						asm cli;
+						PCB::locked = 0;
+						sem->wait(20);
+					}
+
 					for (int k = 0; k<10000; ++k)
 						for (int j = 0; j <30000; ++j);
 			}

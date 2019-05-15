@@ -1,7 +1,11 @@
 #include "idleT.h"
 
 void IdleThread::run() {
-	while (1) {};
+	int num = 1;
+	while (num>0) {
+		num+=2;
+		num = 1; // useless operation
+	};
 }
 
 void IdleThread::start() {

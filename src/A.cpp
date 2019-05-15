@@ -2,7 +2,7 @@
 int A::tren = 50;
 
 void A::run () {
-		for (int i =0; i < 30; ++i) {
+		for (int i =0; i < 50; ++i) {
 				PCB::locked = 1;
 				cout<< idBroj << ": "<<i<<endl;
 				asm cli;

@@ -1,10 +1,14 @@
 #include "ksem.h"
 
-KernelSem::KernelSem(int init) {
+SemList* KernelSem::semList = new SemList();
+
+KernelSem::KernelSem(Semaphore* sm, int init) {
 	PCB::locked = 1;
 	value = init;
+	mySem = sm;
 	limitedWait = new WaitList();
 	// add limitedWait to global list
+	semList->add(mySem);
 	unlimitedWait = new Queue();
 	PCB::locked = 0;
 }

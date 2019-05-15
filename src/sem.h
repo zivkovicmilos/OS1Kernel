@@ -17,6 +17,7 @@ public:
 
 private:
 	friend class KernelSem;
+	friend class SemList;
 	KernelSem* myImpl;
 };
 

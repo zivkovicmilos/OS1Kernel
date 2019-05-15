@@ -3,12 +3,13 @@
 
 #include "waitL.h"
 #include "queue.h"
+#include "sList.h"
 //#include "sem.h"
 typedef unsigned int Time;
 
 class KernelSem {
 public:
-	KernelSem(int init = 1);
+	KernelSem(Semaphore*, int init = 1);
 
 	int wait(Time maxTimeToWait);
 	int signal(int n=0);
@@ -17,10 +18,13 @@ public:
 	~KernelSem();
 private:
 	friend class Semaphore;
-
+	friend class PCB;
+	friend class SemList;
+	static SemList* semList;
 	int value;
 	WaitList* limitedWait;
 	Queue* unlimitedWait;
+	Semaphore* mySem;
 };
 
 
