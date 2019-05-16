@@ -1,33 +1,20 @@
 //#include "pcb.h"
-#include "A.h"
-#include "B.h"
+#include "prod.h"
+#include "cons.h"
 
 int userMain(int argc, char* argv[]) {
 		PCB::locked = 1;
-		A* a = new A(4096, 5);
-		B* b = new B(4096, 3);
-		a->start();
-		b->start();
-		//cout<<"napravio a"<<endl;
-		//asm cli;
+		Buffer* b = new Buffer();
+		Producer* p = new Producer(4096, 5, b);
+		Consumer* consOne = new Consumer(4096, 3, b);
+		Consumer* consTwo = new Consumer(4096, 3, b);
+		p->start();
+		consOne->start();
+		consTwo->start();
 		PCB::locked = 0;
-		delete a;
-		delete b;
-
-		/*
-		B* b = new B(4096, 20);
-		b->start();
-		cout<<"napravio b"<<endl;
-		asm cli;
-		PCB::locked = 0;
-
-		delete a;
-		PCB::locked = 1;
-		cout<<"ZAVRSIO SA A"<<endl;
-		asm cli;
-		PCB::locked = 0;
-		delete b;
-		*/
+		delete p;
+		delete consOne;
+		delete consTwo;
 
 	return 0;
 }
