@@ -1,8 +1,8 @@
 #include "cons.h"
 
-int Consumer::cnt = 0;
+int Conssumer::cnt = 0;
 
-void Consumer::run() {
+void Conssumer::ruan() {
 	int item = 0;
 	while (1) {
 		item = buff->getItem();

@@ -2,15 +2,15 @@
 #define PROD_H_
 #include "thread.h"
 #include "pcb.h"
-#include "sem.h"
 #include "buff.h"
+#include "sem.h"
 
-class Producer : public Thread{
+class Prodducer : public Thread{
 public:
-	Producer(StackSize ss, Time ts, Buffer* buff) : Thread(ss, ts){this->buff = buff;}
-	~Producer() {waitToComplete();}
+	Prodducer(StackSize ss, Time ts, Buffer* buff) : Thread(ss, ts){this->buff = buff;}
+	~Prodducer() {waitToComplete();}
 protected:
-	virtual void run();
+	virtual void ruan();
 private:
 	Buffer* buff;
 };

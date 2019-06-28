@@ -2,15 +2,15 @@
 #define CONS_H_
 #include "thread.h"
 #include "pcb.h"
-#include "sem.h"
 #include "buff.h"
+#include "sem.h"
 
-class Consumer : public Thread{
+class Conssumer : public Thread{
 public:
-	Consumer(StackSize ss, Time ts, Buffer* buff) : Thread(ss, ts){this->buff = buff; id =++cnt;}
-	~Consumer() {waitToComplete();}
+	Conssumer(StackSize ss, Time ts, Buffer* buff) : Thread(ss, ts){this->buff = buff; id =++cnt;}
+	~Conssumer() {waitToComplete();}
 protected:
-	virtual void run();
+	virtual void ruan();
 private:
 	Buffer* buff;
 	int id;

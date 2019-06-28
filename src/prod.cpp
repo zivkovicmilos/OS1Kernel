@@ -1,6 +1,6 @@
 #include "prod.h"
 
-void Producer::run() {
+void Prodducer::ruan() {
 	int num = 0;
 	while(1) {
 			buff->addItem(num);

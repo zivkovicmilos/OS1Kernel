@@ -6,10 +6,13 @@
 #include "thread.h"
 #include <stdlib.h>
 #include <stdio.h>
-//#include "bstT.h"
-//#include "queue.h"
-#include "tList.h"
+
 #include "sem.h"
+#include "tList.h"
+
+#include "sighead.h"
+#include "sigq.h"
+
 const unsigned long maxStackSize = 16384; // TODO check
 
 static void interrupt(*oldInterrupt)(...);
@@ -45,6 +48,7 @@ public:
 	 *
 	 */
 	static void wrapper();
+	//static void signal0();
 
 	Time getTimeSlice();
 	//static void interrupt timer();
@@ -55,11 +59,33 @@ public:
 	//static volatile unsigned int activeThreads;
 	//friend class MainThread;
 
+	// SIGNALS //
+	void initSigArray();
+	void signal (SignalId signal);
+	//static int sigWiped;
+
+	void registerHandler(SignalId signal, SignalHandler handler);
+	void unregisterAllHandlers(SignalId id);
+	void swap(SignalId id, SignalHandler hand1, SignalHandler hand2);
+
+	void blockSignal(SignalId signal);
+	static void blockSignalGlobally(SignalId signal);
+	void unblockSignal(SignalId signal);
+	static void unblockSignalGlobally(SignalId signal);
+
+	static void removeFromThreadList(ID id);
+	void freeSem();
+	void nullParent();
+
+	/////////////////////////////////////////////////////
+	Thread* parent;
 private:
 	friend class Thread;
 	friend class KernelSem;
+	friend class KernelEv;
 	static ThreadList* threadList;
 	Thread* myThread;
+
 	static Thread* mainThread;
 	Semaphore* sem; // CHANGED
 	static unsigned int cnt;
@@ -69,6 +95,10 @@ private:
 	unsigned stackSegment;
 	unsigned basePointer;
 	volatile threadState state;
+
+	// SIGNALS //
+	SigHead** sigArray;
+	SigQueue* sigQueue;
 };
 
 #endif

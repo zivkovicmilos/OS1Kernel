@@ -1,10 +1,50 @@
 #include "thread.h"
 #include "pcb.h"
 
+void signall2() {
+	// Sent to itself
+	PCB::running->nullParent();
+	PCB::locked = 1;
+	cout << "SIGNAL 2" << endl;
+	asm cli;
+	PCB::locked = 0;
+}
+
+void signall1() {
+	// Sent to the parent
+	PCB::locked = 1;
+	cout << "SIGNAL 1" << endl;
+	asm cli;
+	PCB::locked = 0;
+}
+
+void signal0() {
+	/*
+	PCB::locked = 1;
+	cout << "SIG 0 " << PCB::running->id << endl;
+	asm cli;
+	PCB::locked = 0;
+	*/
+	PCB::running->setState(PCB::FINISHED);
+	PCB::running->removeFromThreadList(PCB::running->id);
+
+	// SIGNALS //
+	//PCB::running->parent->signal(1); // To the parent TODO implement
+	//PCB::running->signal(2); // To itself
+	PCB::running->freeSem();
+	dispatch();
+}
+
 Thread::Thread(StackSize stackSize, Time timeSlice) {
 	// lock
 	PCB::locked = 1;
 	myPCB = new PCB(this, stackSize, timeSlice);
+
+	// SIGNALS //
+	//myPCB->initSigArray();
+	//registerHandler(0, signal0);
+	//registerHandler(1, signal1);
+	//registerHandler(2, signall2);
 	PCB::locked = 0;
 	// unlock
 }
@@ -50,25 +90,61 @@ void Thread::waitToComplete() {
 	}
 
 	if (this == PCB::mainThread) {
-		cout<<"this is mainThread" << myPCB->id << endl;
-		asm cli;
-		PCB::locked = 0; return;
+		//cout<<"this is mainThread" << myPCB->id << endl;
+		//asm cli;
+		//PCB::locked = 0;
+		return;
 	}
 	// if idle
 	if (myPCB == PCB::running) {
-		cout<<"sam sebe " << myPCB->id << endl;
-		asm cli;
-		PCB::locked = 0;
-		return; }
+		//cout<<"sam sebe " << myPCB->id << endl;
+		//asm cli;
+		//PCB::locked = 0;
+		return;
+	}
 
-	//PCB::running->setState(PCB::BLOCKED); CHANGED
+	//PCB::running->setState(PCB::BLOCKED);
 	myPCB->sem->wait(0);
 	PCB::locked = 0; // ???
+
 	//cout<<"Is waiting: " << PCB::running->id << " on " << myPCB->id<< endl;
 	//asm cli;
 	//PCB::locked = 0;
 	//dispatch();
 }
+
+// SIGNALS //
+void Thread::signal (SignalId signal) {
+	myPCB->signal(signal);
+}
+
+void Thread::registerHandler(SignalId signal, SignalHandler handler) {
+	myPCB->registerHandler(signal, handler);
+}
+
+void Thread::unregisterAllHandlers(SignalId id) {
+	myPCB->unregisterAllHandlers(id);
+}
+
+void Thread::swap(SignalId id, SignalHandler hand1, SignalHandler hand2) {
+	myPCB->swap(id, hand1, hand2);
+}
+
+void Thread::blockSignal(SignalId signal) {
+	myPCB->blockSignal(signal);
+}
+static void blockSignalGlobally(SignalId signal) {
+	PCB::blockSignalGlobally(signal);
+}
+
+void Thread::unblockSignal(SignalId signal) {
+	myPCB->unblockSignal(signal);
+}
+
+static void unblockSignalGlobally(SignalId signal) {
+	PCB::unblockSignalGlobally(signal);
+}
+////////////////////////////////////////
 
 Thread::~Thread() {
 	/*
@@ -78,6 +154,8 @@ Thread::~Thread() {
 	PCB::locked = 0;
 	*/
 	// Lose nesto vrti
-	waitToComplete();
-	//delete myPCB;
+	//waitToComplete();
+	PCB::locked = 1;
+	delete myPCB; // CHANGED
+	PCB::locked = 0;
 }

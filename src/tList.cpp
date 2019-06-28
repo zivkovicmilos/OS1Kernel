@@ -59,4 +59,22 @@ Thread* ThreadList::getByID(ID id) {
 	return 0;
 }
 
+void ThreadList::blockSignal(SignalId signal) {
+	Elem* temp = first;
+
+	while(temp != 0) {
+		temp->data->blockSignal(signal);
+		temp = temp->next;
+	}
+}
+
+void ThreadList::unblockSignal(SignalId signal) {
+	Elem* temp = first;
+
+	while(temp != 0) {
+		temp->data->unblockSignal(signal);
+		temp = temp->next;
+	}
+}
+
 ThreadList::~ThreadList() {}

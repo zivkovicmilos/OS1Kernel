@@ -7,37 +7,39 @@ const int N = 100;
 
 class Buffer {
 	unsigned int arr[N];
-	//Semaphore* mutex;
+	Semaphore* mutext;
+	Semaphore* mutexa;
 	Semaphore* spaceAvailable;
 	Semaphore* itemAvailable;
 	int head, tail;
 
 public:
 	Buffer() {
-		//mutex = new Semaphore(1);
+		mutext = new Semaphore(1);
+		mutexa = new Semaphore(1);
 		spaceAvailable = new Semaphore(100);
 		itemAvailable = new Semaphore(0);
 		head = tail = 0;
 	}
 	void addItem(unsigned int num) {
 		spaceAvailable->wait(0);
-		//mutex->wait(0);
-		PCB::locked = 1;
+		mutexa->wait(0);
+		//PCB::locked = 1;
 		arr[tail] = num;
 		tail = (tail+1)%N;
-		//mutex->signal(0);
-		PCB::locked = 0;
+		mutexa->signal(0);
+		//PCB::locked = 0;
 		itemAvailable->signal(0);
 	}
 
 	int getItem() {
 		itemAvailable->wait(0);
-		//mutex->wait(0);
-		PCB::locked = 1;
+		mutext->wait(0);
+		//PCB::locked = 1;
 		int ret = arr[head];
 		head = (head+1)%N;
-		//mutex->signal(0);
-		PCB::locked = 0;
+		mutext->signal(0);
+		//PCB::locked = 0;
 		spaceAvailable->signal(0);
 		return ret;
 	}
