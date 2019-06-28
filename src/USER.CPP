@@ -17,7 +17,7 @@
 //---------------------------------------------------------------------------//
 //  Otkomentarisati ukoliko se testiraju signali
 //---------------------------------------------------------------------------//
-//#define SIGNAL
+#define SIGNAL
 //---------------------------------------------------------------------------//
 
 //---------------------------------------------------------------------------//
@@ -159,6 +159,7 @@ int userMain (int argc, char* argv[])
 
 #ifdef SIGNAL
 	Thread *current = Thread::getThreadById(Thread::getRunningId());
+
 	current->registerHandler(1, signal1);
 	current->blockSignal(1);
 #endif
@@ -190,6 +191,7 @@ int userMain (int argc, char* argv[])
 
 #ifdef SIGNAL
 	current->unblockSignal(1);
+
 	Semaphore timer(0);
 	timer.wait(10);
 	if (N > 1) {

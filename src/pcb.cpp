@@ -26,11 +26,16 @@ PCB::PCB(Thread* t, StackSize stackSize, Time timeSlice) {
 	PCB::locked = 1;
 	//PCB::activeThreads++;
 
-	parent = PCB::running->myThread;
-
 	id = ++cnt;
 	state = NEW;
 	myThread = t;
+
+	if(id == 1 || id == 2) {
+		// The main and idle threads don't have parents
+		parent = 0;
+	} else {
+		parent = PCB::running->myThread;
+	}
 
 	sigQueue = new SigQueue();
 
@@ -59,9 +64,9 @@ void PCB::wrapper() {
 		running->setState(FINISHED);
 			threadList->remove(PCB::running->id);
 
-			// SIGNALS //
-			//PCB::running->parent->signal(1); // To the parent
-			//PCB::running->signal(2); // To itself
+			// SIGNALS // TODO Changed 28.6 19:00
+			if(PCB::running->parent != 0) PCB::running->parent->signal(1);
+			PCB::running->signal(2); // To itself
 
 			//PCB::activeThreads--;
 			// OVDE IDU SVE STVARI KOJE ZELIM DA SE DESE KADA SE NIT ZAVRSI
@@ -280,12 +285,13 @@ void PCB::initSigArray() {
 	}
 }
 
-void PCB::signal (SignalId signal) {
-	if (signal == 1 || signal == 2) {
-		sigArray[signal]->runHandlers();
-		// TODO check if blocked?
+void PCB::signal(SignalId signal) {
+	if (signal == 2) {
+		if (PCB::running->sigArray[signal] != 0 && !PCB::running->sigArray[signal]->isBlocked()) {
+			//cout << "RUNNING " << sig << endl;
+			PCB::running->sigArray[signal]->runHandlers();
+		}
 	} else {
-		//if(sigArray[signal] == 0) sigArray[signal] = new SigHead();
 		sigQueue->addElem(signal);
 	}
 }

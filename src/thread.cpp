@@ -1,23 +1,6 @@
 #include "thread.h"
 #include "pcb.h"
 
-void signall2() {
-	// Sent to itself
-	PCB::running->nullParent();
-	PCB::locked = 1;
-	cout << "SIGNAL 2" << endl;
-	asm cli;
-	PCB::locked = 0;
-}
-
-void signall1() {
-	// Sent to the parent
-	PCB::locked = 1;
-	cout << "SIGNAL 1" << endl;
-	asm cli;
-	PCB::locked = 0;
-}
-
 void signal0() {
 	/*
 	PCB::locked = 1;
@@ -29,9 +12,12 @@ void signal0() {
 	PCB::running->removeFromThreadList(PCB::running->id);
 
 	// SIGNALS //
-	//PCB::running->parent->signal(1); // To the parent TODO implement
-	//PCB::running->signal(2); // To itself
+
+	PCB::running->parent->signal(1);
+	PCB::running->signal(2); // To itself
+
 	PCB::running->freeSem();
+
 	dispatch();
 }
 
@@ -41,10 +27,9 @@ Thread::Thread(StackSize stackSize, Time timeSlice) {
 	myPCB = new PCB(this, stackSize, timeSlice);
 
 	// SIGNALS //
-	//myPCB->initSigArray();
-	//registerHandler(0, signal0);
-	//registerHandler(1, signal1);
-	//registerHandler(2, signall2);
+	myPCB->initSigArray();
+	registerHandler(0, signal0);
+
 	PCB::locked = 0;
 	// unlock
 }
