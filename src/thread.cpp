@@ -1,7 +1,7 @@
 #include "thread.h"
 #include "pcb.h"
 
-void signal0() {
+void signalll0() {
 	/*
 	PCB::locked = 1;
 	cout << "SIG 0 " << PCB::running->id << endl;
@@ -13,8 +13,12 @@ void signal0() {
 
 	// SIGNALS //
 
+	PCB::locked = 1;
+	cout << "RUNNING SIG 1/2 (RL) THRD " << PCB::running->id << endl;
 	PCB::running->parent->signal(1);
 	PCB::running->signal(2); // To itself
+	asm cli;
+	PCB::locked = 0;
 
 	PCB::running->freeSem();
 
@@ -22,36 +26,27 @@ void signal0() {
 }
 
 Thread::Thread(StackSize stackSize, Time timeSlice) {
-	// lock
 	PCB::locked = 1;
 	myPCB = new PCB(this, stackSize, timeSlice);
 
-	// SIGNALS //
-	myPCB->initSigArray();
-	registerHandler(0, signal0);
+	// SIGNALS // CHANGED 8.7.2019.
+	//myPCB->initSigArray();
+	//registerHandler(0, signal0);
 
 	PCB::locked = 0;
-	// unlock
 }
 
 void Thread::start() {
-	// lock ?
-	//PCB::locked = 1;
 	if (myPCB->getState() == PCB::NEW) {
 		myPCB->initPCB();
 		myPCB->setState(PCB::READY);
 		Scheduler::put(myPCB);
 	}
-	//PCB::locked = 0;
-	//if (PCB::reqContextSwitch) dispatch();
-	// unlock ?
 }
 
 void dispatch() {
-	//lock ?
 	PCB::reqContextSwitch = 1;
 	PCB::timer();
-	//unlock ?
 }
 
 ID Thread::getId() {
@@ -67,35 +62,41 @@ Thread* Thread::getThreadById(ID id) {
 }
 
 void Thread::waitToComplete() {
-	PCB::locked = 1;
+	//PCB::locked = 1;
 
+	// Pass if thread is finished
 	if (myPCB->getState() == PCB::FINISHED) {
-		PCB::locked = 0;
+		//PCB::locked = 0;
 		return;
 	}
 
+	// No thread can wait on the mainThread
 	if (this == PCB::mainThread) {
-		//cout<<"this is mainThread" << myPCB->id << endl;
-		//asm cli;
 		//PCB::locked = 0;
 		return;
 	}
-	// if idle
+
+	// No thread can wait on itself
 	if (myPCB == PCB::running) {
-		//cout<<"sam sebe " << myPCB->id << endl;
-		//asm cli;
 		//PCB::locked = 0;
 		return;
 	}
 
-	//PCB::running->setState(PCB::BLOCKED);
-	myPCB->sem->wait(0);
-	PCB::locked = 0; // ???
+	// No thread can wait on idleThread
+	if(this == PCB::idle){
+		//PCB::locked = 0;
+		return;
+	}
 
-	//cout<<"Is waiting: " << PCB::running->id << " on " << myPCB->id<< endl;
-	//asm cli;
+	myPCB->sem->wait(0);
 	//PCB::locked = 0;
-	//dispatch();
+}
+
+Thread::~Thread() {
+	//waitToComplete();
+	PCB::locked = 1;
+	delete myPCB;
+	PCB::locked = 0;
 }
 
 // SIGNALS //
@@ -130,17 +131,3 @@ static void unblockSignalGlobally(SignalId signal) {
 	PCB::unblockSignalGlobally(signal);
 }
 ////////////////////////////////////////
-
-Thread::~Thread() {
-	/*
-	PCB::locked = 1;
-	cout<<"DELETING THREAD..." << myPCB->id << " FROM " << PCB::running->id << endl;
-	asm cli;
-	PCB::locked = 0;
-	*/
-	// Lose nesto vrti
-	//waitToComplete();
-	PCB::locked = 1;
-	delete myPCB; // CHANGED
-	PCB::locked = 0;
-}

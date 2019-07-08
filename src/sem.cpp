@@ -3,9 +3,7 @@
 #include "ksem.h"
 
 Semaphore::Semaphore(int init) {
-	//lock
 	myImpl = new KernelSem(this, init);
-	//unlock
 }
 
 int Semaphore::wait(Time maxTimeToWait) {
@@ -21,7 +19,7 @@ int Semaphore::val() const{
 }
 
 Semaphore::~Semaphore() {
-	//lock
+	PCB::locked = 1;
 	delete myImpl;
-	//unlock
+	PCB::locked = 0;
 }

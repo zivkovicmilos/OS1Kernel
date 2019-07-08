@@ -6,7 +6,7 @@
 #include "queue.h"
 
 class KernelEv {
-	Thread* owner; // In constructor, thread running
+	Thread* owner; // In constructor, running thread
 	IVTNo entry;
 	Queue* waitList;
 	friend class IVTEntry;

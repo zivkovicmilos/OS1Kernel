@@ -139,7 +139,7 @@ int userMain (int argc, char* argv[])
 {
 	BoundedBuffer *buff;
 	Consumer *con;
-	
+
 	intLock
 	if(argc <2){
 		cout<<"Invalid input!"<<endl;

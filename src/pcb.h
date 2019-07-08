@@ -26,9 +26,9 @@ public:
 	static void interrupt timer(...);
 	static volatile unsigned int locked;
 	static volatile int reqContextSwitch;
-	//static bstTree* threads;
 
 	PCB(Thread*, StackSize, Time);
+	~PCB();
 
 	threadState getState();
 	void setState(threadState s);
@@ -42,27 +42,19 @@ public:
 
 	void initPCB();
 
-	/*
-	 * Statickoj metodi se adresa konstruise na steku u compile time, i njenu adresu mozemo dohvatiti
-	 * Uvek cemo u Threadu da skacemo na adresu ovog wrappera kada podmecemo
-	 *
-	 */
 	static void wrapper();
-	//static void signal0();
+	static void sigWrapper();
 
 	Time getTimeSlice();
-	//static void interrupt timer();
 	static Thread* findThread(ID);
 	static void inic();
 	static void restore();
 	ID id;
-	//static volatile unsigned int activeThreads;
-	//friend class MainThread;
 
 	// SIGNALS //
 	void initSigArray();
 	void signal (SignalId signal);
-	//static int sigWiped;
+	void signal0();
 
 	void registerHandler(SignalId signal, SignalHandler handler);
 	void unregisterAllHandlers(SignalId id);
@@ -83,11 +75,13 @@ private:
 	friend class Thread;
 	friend class KernelSem;
 	friend class KernelEv;
+
 	static ThreadList* threadList;
 	Thread* myThread;
 
 	static Thread* mainThread;
-	Semaphore* sem; // CHANGED
+	static IdleThread* idle;
+	Semaphore* sem;
 	static unsigned int cnt;
 	StackSize stackSize;
 	volatile Time timeSlice;

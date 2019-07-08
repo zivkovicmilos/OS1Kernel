@@ -21,7 +21,6 @@ void SigQueue::addElem(SignalId num) {
 
 SignalId SigQueue::getElem() {
 	// TODO maybe return integer, for error checking?
-	//if (first == 0) return 0;
 	SignalId ret = 0;
 	if (first->next != 0) {
 		ret = first->num;

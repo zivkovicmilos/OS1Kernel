@@ -19,10 +19,12 @@ public:
 	ThreadList();
 	void add(Thread*);
 	void remove(ID);
+
 	// SIGNALS //
 	void blockSignal(SignalId signal);
 	void unblockSignal(SignalId signal);
 	////////////////////////////////////
+
 	Thread* getByID(ID);
 	~ThreadList();
 };

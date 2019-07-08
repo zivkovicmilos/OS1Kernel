@@ -11,35 +11,20 @@ class PCB; // Kernel's implementation of a user's thread
 // SIGNALS //
 typedef void (*SignalHandler)();
 typedef unsigned SignalId;
+////////////////////////////////
 
 class Thread {
 public:
-	void start(); // ubacuje u Scheduler
+	void start();
 
-	/*
-	 * A kaze b.waitToComplete(), nit A se blokira u slucaju da nit B jos nije zavrsena (dok se ne zavrsi).
-	 * Moramo pratiti za nit B ko ceka da se ona zavrsi, i kada se zavrsi da obavestimo sve koji cekaju i da ih odblokriamo.
-	 * U svakoj niti imamo listu onih koji cekaju da se ona zavrsi, ali zapravo ovo uradimo sa jednim semaforom koji na pocetku
-	 * stavimo da je 0. Svi oni koji hoce da se waituju na toj niti, oni cekaju na njenom semaforu.
-	 * Kako znamo da se nit zavrsila?
-	 * Tako sto je to deo u wrapperu posle njenog run-a.
-	 * WaitToComplete nema efekta ako je nit zavrsena (imas getStatus u pcbu)
-	 */
 	void waitToComplete();
 
-	/*
-	 * Ovde proveravamo ako neko pokusava da obrise Thread, mora da saceka da se thread zavrsi
-	 * treba da pozove waitToComplete
-	 */
 	virtual ~Thread();
 
 	ID getId();
 
 	static ID getRunningId();
 
-	/*
-	 * Treba da postoji struktura kojom pamtimo sve niti koje postoje u sistemu
-	 */
 	static Thread * getThreadById(ID id);
 
 	// SIGNALS //
@@ -67,9 +52,6 @@ private:
 	PCB* myPCB;
 };
 
-/*
- * Treba da pozove interrupt timer
- */
 void dispatch();
 
 #endif

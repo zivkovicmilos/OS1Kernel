@@ -26,7 +26,6 @@ void KernelEv::signal() {
 		Scheduler::put(temp);
 	}
 	PCB::locked = 0;
-	// dispatch?
 }
 
 KernelEv::~KernelEv() {

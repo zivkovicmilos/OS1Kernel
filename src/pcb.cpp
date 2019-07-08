@@ -3,15 +3,14 @@
 #include "ksem.h"
 
 unsigned int PCB::cnt = 0;
-//volatile unsigned int PCB::activeThreads = 0;
-static IdleThread* idle = 0;
+IdleThread* PCB::idle = 0;
 Thread* PCB::mainThread = 0;
 volatile unsigned int PCB::locked = 0;
 ThreadList* PCB::threadList = new ThreadList();
 PCB* PCB::running = 0;
 volatile int PCB::reqContextSwitch = 0;
-//int PCB::sigWiped = 0;
-//SigHead** PCB::sigArray = new SigHead*[16];
+
+typedef void (*SignalHandler)();
 
 unsigned tss;
 unsigned tsp;
@@ -21,10 +20,28 @@ void tick();
 
 volatile int currentSlice = -1;
 
-PCB::PCB(Thread* t, StackSize stackSize, Time timeSlice) {
-	// lock
+void PCB::signal0() {
+	setState(PCB::FINISHED);
+	removeFromThreadList(id);
+
+	// SIGNALS //
+	/*
 	PCB::locked = 1;
-	//PCB::activeThreads++;
+	cout << "RUNNING SIG 1/2 (RL) " << id << " BY " << PCB::running->id <<  endl;
+	asm cli;
+	PCB::locked = 0;
+	*/
+
+	if(parent != 0) parent->signal(1);
+	signal(2); // To itself
+	freeSem();
+
+	dispatch();
+}
+
+
+PCB::PCB(Thread* t, StackSize stackSize, Time timeSlice) {
+	PCB::locked = 1;
 
 	id = ++cnt;
 	state = NEW;
@@ -47,10 +64,11 @@ PCB::PCB(Thread* t, StackSize stackSize, Time timeSlice) {
 	this->timeSlice = timeSlice;
 	stackPointer = stackSegment = basePointer = 0;
 	threadList->add(t);
-	//threads->instBst(t);
 	sem = new Semaphore(0);
+
+	initSigArray();
+	//registerHandler(0, sig0);
 	PCB::locked = 0;
-	// unlock
 }
 
 Time PCB::getTimeSlice() {
@@ -60,39 +78,27 @@ Time PCB::getTimeSlice() {
 void PCB::wrapper() {
 	PCB::running->myThread->run();
 
-	if(PCB::running->getState() != PCB::FINISHED) { // TODO changed 28.6
-		running->setState(FINISHED);
+	if(PCB::running->getState() != PCB::FINISHED) {
+			PCB::running->setState(FINISHED);
 			threadList->remove(PCB::running->id);
 
-			// SIGNALS // TODO Changed 28.6 19:00
+			// SIGNALS //
+			/*
+			PCB::locked = 1;
+			cout << "RUNNING SIG 1/2 WRP" << PCB::running->id << endl;
+
+			asm cli;
+			PCB::locked = 0;
+			*/
 			if(PCB::running->parent != 0) PCB::running->parent->signal(1);
 			PCB::running->signal(2); // To itself
-
-			//PCB::activeThreads--;
-			// OVDE IDU SVE STVARI KOJE ZELIM DA SE DESE KADA SE NIT ZAVRSI
-			// signalAll, zbog waitToComplete
-
 			// Do all this even if
 			while (PCB::running->sem->val() < 0) {
 				PCB::running->sem->signal(0);
 			}
 			dispatch();
-			/*
-			 * CHANGED
-			PCB* temp;
-			while (PCB::running->waiting->getSize() > 0) {
-				temp = running->waiting->getElem();
-				temp->setState(PCB::READY);
-				PCB::locked = 1;
-				cout << "Stavljam nit: " << temp->id << endl;
-				PCB::locked = 0;
-				Scheduler::put(temp);
-			}
-			dispatch();
-			*/
 	}
 	// if the thread was FINISHED when exiting the run method, it was killed earlier
-
 }
 
 void (*body)() = PCB::wrapper;
@@ -168,9 +174,9 @@ void PCB::restore() {
 	setvect(8, oldInterrupt);
 	// Delete all threads
 	delete mainThread;
-	//delete mainThread->myPCB;
+	delete idle;
 	PCB::running = 0;
-	cout<<"Happy End"<<endl;
+	//cout<<"Happy End"<<endl;
 	asm sti;
 }
 
@@ -187,7 +193,6 @@ void interrupt PCB::timer(...) {
 	if (currentSlice == 0 || PCB::reqContextSwitch) {
 		if (!PCB::locked) {
 			PCB::reqContextSwitch = 0;
-			// obrati paznju na ovaj prvi asm block
 					asm {
 						mov tsp, sp
 						mov tss, ss
@@ -198,14 +203,6 @@ void interrupt PCB::timer(...) {
 					PCB::running->setSS(tss);
 					PCB::running->setBP(tbp);
 
-					/*
-					PCB::locked = 1;
-					cout << "Menja se kontekst sa " << PCB::running->id << endl;
-					asm cli;
-					PCB::locked = 0;
-					*/
-
-
 					if (PCB::running->getState() == PCB::READY){
 						Scheduler::put((PCB *) PCB::running);
 					}
@@ -213,16 +210,9 @@ void interrupt PCB::timer(...) {
 					while(1) {
 						PCB::running = Scheduler::get();
 
-						/*
-						PCB::locked = 1;
-						cout << "Izabrana nit: " << PCB::running->id << endl;
-						asm cli;
-						PCB::locked = 0;
-						*/
-
 						if (PCB::running == 0) PCB::running = idle->myPCB;
 
-						if (PCB::running->getState() != PCB::READY) continue; // TODO Check
+						if (PCB::running->getState() != PCB::READY) continue;
 
 						tsp = PCB::running->getSP();
 						tss = PCB::running->getSS();
@@ -245,11 +235,14 @@ void interrupt PCB::timer(...) {
 						while(PCB::running->sigQueue->getSize() > 0) {
 							SignalId sig = PCB::running->sigQueue->getElem();
 
+							/*
 							if(sig == 0) {
 								// Kill the thread, and continue
-								PCB::running->sigArray[0]->runHandlers();
+								//PCB::running->sigArray[0]->runHandlers();
+								PCB::running->signal0();
 								break;
 							}
+							*/
 
 							if(PCB::running->sigArray[sig] == 0) continue; // Signal not even registered / created
 
@@ -267,9 +260,23 @@ void interrupt PCB::timer(...) {
 	}
 
 	if(!PCB::reqContextSwitch) {
-		tick(); //Tick zovemo samo kad je stvarno doslo do prekida
-		(*oldInterrupt)(); // CHANGED
+		tick(); // Tick is called when it was a real interrupt
+		(*oldInterrupt)();
  	}
+}
+
+PCB::~PCB() {
+	while (sem->val() < 0) {
+		sem->signal(0);
+	}
+	delete sem;
+
+	for(int i = 0; i < 16; i++) {
+		if (sigArray[i] != 0) delete sigArray[i];
+	}
+
+	delete sigArray;
+	delete sigQueue;
 }
 
 // SIGNALS //
@@ -285,13 +292,23 @@ void PCB::initSigArray() {
 	}
 }
 
-// TODO add that only the system thread can call signal 1 / 2
 void PCB::signal(SignalId signal) {
-	if (signal == 2) {
-		if (PCB::running->sigArray[signal] != 0 && !PCB::running->sigArray[signal]->isBlocked()) {
-			//cout << "RUNNING " << sig << endl;
-			PCB::running->sigArray[signal]->runHandlers();
+	if (signal == 1 || signal == 2) {
+		if(PCB::running->myThread != mainThread) return; // Only the system thread can call signals 1 and 2
+
+		if (sigArray[signal] != 0 && !sigArray[signal]->isBlocked()) {
+			/*
+			PCB::locked = 1;
+			cout << "SIG 1/2 by " << PCB::running->id << " for " << id << endl;
+			asm cli;
+			PCB::locked = 0;
+			*/
+			sigArray[signal]->runHandlers();
+		} else {
+			if (sigArray[signal] != 0) sigQueue->addElem(signal);
 		}
+	} else if (signal == 0) {
+		signal0();
 	} else {
 		sigQueue->addElem(signal);
 	}

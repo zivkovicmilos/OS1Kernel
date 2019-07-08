@@ -13,13 +13,11 @@ typedef void interrupt (*IntRoutine)(...);
 			ivte##num.signal(); \
 		};
 
-//#define GETADR(n) getvect(intr##n)
-
 class IVTEntry {
 	KernelEv* myEvent;
 	IntRoutine oldRoutine;
 public:
-	IVTEntry(IVTNo, IntRoutine); // ovde cuva staru prekidnu rutinu
+	IVTEntry(IVTNo, IntRoutine);
 	~IVTEntry();
 	void signal();
 	void old();
