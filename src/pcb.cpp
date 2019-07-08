@@ -285,6 +285,7 @@ void PCB::initSigArray() {
 	}
 }
 
+// TODO add that only the system thread can call signal 1 / 2
 void PCB::signal(SignalId signal) {
 	if (signal == 2) {
 		if (PCB::running->sigArray[signal] != 0 && !PCB::running->sigArray[signal]->isBlocked()) {
