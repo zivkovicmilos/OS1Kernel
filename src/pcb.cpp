@@ -25,18 +25,13 @@ void PCB::signal0() {
 	removeFromThreadList(id);
 
 	// SIGNALS //
-	/*
-	PCB::locked = 1;
-	cout << "RUNNING SIG 1/2 (RL) " << id << " BY " << PCB::running->id <<  endl;
-	asm cli;
-	PCB::locked = 0;
-	*/
-
-	if(parent != 0) parent->signal(1);
-	signal(2); // To itself
+	if(PCB::running->myThread == mainThread) {
+		if(parent != 0) parent->signal(1);
+		signal(2); // To itself
+	}
 	freeSem();
 
-	dispatch();
+	//dispatch();
 }
 
 
@@ -266,9 +261,7 @@ void interrupt PCB::timer(...) {
 }
 
 PCB::~PCB() {
-	while (sem->val() < 0) {
-		sem->signal(0);
-	}
+	PCB::locked =1;
 	delete sem;
 
 	for(int i = 0; i < 16; i++) {
@@ -277,6 +270,7 @@ PCB::~PCB() {
 
 	delete sigArray;
 	delete sigQueue;
+	PCB::locked = 0;
 }
 
 // SIGNALS //
