@@ -33,48 +33,40 @@ Thread* Thread::getThreadById(ID id) {
 }
 
 void Thread::waitToComplete() {
-	//PCB::locked = 1;
 	asm cli;
 
 	// Pass if thread is finished
 	if (myPCB->getState() == PCB::FINISHED) {
-		//PCB::locked = 0;
 		asm sti;
 		return;
 	}
 
 	// No thread can wait on the mainThread
 	if (this == PCB::mainThread) {
-		//PCB::locked = 0;
 		asm sti;
 		return;
 	}
 
 	// No thread can wait on itself
 	if (myPCB == PCB::running) {
-		//PCB::locked = 0;
 		asm sti;
 		return;
 	}
 
 	// No thread can wait on idleThread
 	if(this == PCB::idle){
-		//PCB::locked = 0;
 		asm sti;
 		return;
 	}
 	asm sti;
 	myPCB->sem->wait(0);
-	//PCB::locked = 0;
 }
 
 Thread::~Thread() {
-	//PCB::locked = 1;
 	waitToComplete();
 	PCB::locked = 1;
 	delete myPCB;
 	PCB::locked = 0;
-	//PCB::locked = 0;
 }
 
 // SIGNALS //

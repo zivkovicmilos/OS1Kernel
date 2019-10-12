@@ -48,7 +48,6 @@ int KernelSem::signal(int n) {
 
 	PCB::locked = 0;
 	return ret;
-	//if (PCB::reqContextSwitch) dispatch();
 }
 
 int KernelSem::wait(Time maxTimeToWait) {

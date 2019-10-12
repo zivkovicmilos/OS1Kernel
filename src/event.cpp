@@ -9,11 +9,9 @@ Event::Event(IVTNo ivtNo) {
 }
 
 Event::~Event() {
-	//lock?
 	PCB::locked = 1;
 	delete myImpl;
 	PCB::locked = 0;
-	//unlock?
 }
 
 void Event::wait() {

@@ -24,22 +24,18 @@ public:
 	void addItem(unsigned int num) {
 		spaceAvailable->wait(0);
 		mutexa->wait(0);
-		//PCB::locked = 1;
 		arr[tail] = num;
 		tail = (tail+1)%N;
 		mutexa->signal(0);
-		//PCB::locked = 0;
 		itemAvailable->signal(0);
 	}
 
 	int getItem() {
 		itemAvailable->wait(0);
 		mutext->wait(0);
-		//PCB::locked = 1;
 		int ret = arr[head];
 		head = (head+1)%N;
 		mutext->signal(0);
-		//PCB::locked = 0;
 		spaceAvailable->signal(0);
 		return ret;
 	}

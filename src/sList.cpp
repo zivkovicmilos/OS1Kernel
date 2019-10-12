@@ -25,7 +25,6 @@ SemList::~SemList() {
 		prev = temp;
 		temp = temp->next;
 		delete prev;
-		// TODO maybe more?
 	}
 	first = last = 0;
 	num = 0;

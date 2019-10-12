@@ -10,7 +10,6 @@ public:
 	bstTree(bstNode*);
 	bstTree();
 	Thread* bstFind(ID);
-	//bool isFound(bstNode*);
 	void deleteNode(ID);
 	void instBst(Thread*); // Add
 	~bstTree();

@@ -61,7 +61,6 @@ void WaitList::addWaiting(Thread* t, int val) {
 	}
 
 	numOfWaiting++;
-	//printList();
 }
 
 void WaitList::removeWaiting() {
@@ -87,7 +86,6 @@ void WaitList::removeWaiting() {
 		}
 		first = temp;
 	}
-	//printList();
 }
 
 int WaitList::getNumOfWaiting() const {
@@ -96,7 +94,6 @@ int WaitList::getNumOfWaiting() const {
 
 void WaitList::printList() {
 	Elem* temp = first;
-	//cout << "Num of waiting: " << numOfWaiting << endl;
 	while (temp) {		
 		cout << temp->val << " ";
 		temp = temp->next;

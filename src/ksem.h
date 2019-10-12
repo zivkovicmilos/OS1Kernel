@@ -4,7 +4,6 @@
 #include "waitL.h"
 #include "queue.h"
 #include "sList.h"
-//#include "sem.h"
 typedef unsigned int Time;
 
 class KernelSem {

@@ -13,7 +13,7 @@
 #include "sighead.h"
 #include "sigq.h"
 
-const unsigned long maxStackSize = 16384; // TODO check
+const unsigned long maxStackSize = 16384;
 
 static void interrupt(*oldInterrupt)(...);
 

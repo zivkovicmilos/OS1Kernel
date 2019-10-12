@@ -30,8 +30,6 @@ void PCB::signal0() {
 		signal(2); // To itself
 	}
 	freeSem();
-
-	//dispatch();
 }
 
 
@@ -62,7 +60,6 @@ PCB::PCB(Thread* t, StackSize stackSize, Time timeSlice) {
 	sem = new Semaphore(0);
 
 	initSigArray();
-	//registerHandler(0, sig0);
 	PCB::locked = 0;
 }
 
@@ -78,13 +75,6 @@ void PCB::wrapper() {
 			threadList->remove(PCB::running->id);
 
 			// SIGNALS //
-			/*
-			PCB::locked = 1;
-			cout << "RUNNING SIG 1/2 WRP" << PCB::running->id << endl;
-
-			asm cli;
-			PCB::locked = 0;
-			*/
 			if(PCB::running->parent != 0) PCB::running->parent->signal(1);
 			PCB::running->signal(2); // To itself
 			// Do all this even if
@@ -171,7 +161,6 @@ void PCB::restore() {
 	delete mainThread;
 	delete idle;
 	PCB::running = 0;
-	//cout<<"Happy End"<<endl;
 	asm sti;
 }
 
@@ -230,19 +219,9 @@ void interrupt PCB::timer(...) {
 						while(PCB::running->sigQueue->getSize() > 0) {
 							SignalId sig = PCB::running->sigQueue->getElem();
 
-							/*
-							if(sig == 0) {
-								// Kill the thread, and continue
-								//PCB::running->sigArray[0]->runHandlers();
-								PCB::running->signal0();
-								break;
-							}
-							*/
-
 							if(PCB::running->sigArray[sig] == 0) continue; // Signal not even registered / created
 
 							if (!PCB::running->sigArray[sig]->isBlocked()) {
-								//cout << "RUNNING " << sig << endl;
 								PCB::running->sigArray[sig]->runHandlers();
 							}
 
@@ -291,12 +270,6 @@ void PCB::signal(SignalId signal) {
 		if(PCB::running->myThread != mainThread) return; // Only the system thread can call signals 1 and 2
 
 		if (sigArray[signal] != 0 && !sigArray[signal]->isBlocked()) {
-			/*
-			PCB::locked = 1;
-			cout << "SIG 1/2 by " << PCB::running->id << " for " << id << endl;
-			asm cli;
-			PCB::locked = 0;
-			*/
 			sigArray[signal]->runHandlers();
 		} else {
 			if (sigArray[signal] != 0) sigQueue->addElem(signal);
